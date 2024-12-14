@@ -12,7 +12,7 @@ enum State
 };
 struct Grid
 {
-	Grid() : values(nullptr), width(-1), height(-1), tabrand(nullptr)
+	Grid() : values(nullptr), width(-1), height(-1), tabrand(nullptr), bomb(0)
 	{
 	}
 	~Grid()
@@ -28,20 +28,20 @@ struct Grid
 
 	void initiate()
 	{
-
-
 		std::cout << "choose the width : ";
 		std::cin >> width;
 		std::cout << std::endl;
 
-
 		std::cout << "choose the height : ";
 		std::cin >> height;
 		std::cout << std::endl;
-		if (width < 2 || width < 2)
+
+		//if grid too small
+		if (width < 3 || height < 3)
+		{
 			do
 			{
-				std::cout << "invalid size enter a size greater than 5 ";
+				std::cout << "invalid size enter a size greater than 3 ";
 				std::cout << std::endl;
 				std::cout << "choose the width : ";
 				std::cin >> width;
@@ -51,11 +51,45 @@ struct Grid
 				std::cout << "choose the height : ";
 				std::cin >> height;
 				std::cout << std::endl;
-			} while (width < 2 || width < 2);
+			} while (width < 3 || height < 3);
+		}
+		std::cout << "choose the number of bomb : ";
+		std::cin >> bomb;
+		std::cout << std::endl;
+		// if too much bomb
+		if (bomb > (25 * width * height) / 100)
+			do
+			{
+				std::cout << "choose a valid number of bomb under 25% of case";
+				std::cout << std::endl;
+				std::cout << "choose the number of bomb : ";
+				std::cin >> bomb;
+				std::cout << std::endl;
+			} while (bomb > (25 * width * height) / 100);
+
+		//create the 2 grids 
 		create(width, height);
 		tableaualéatoire();
 
 	}
+	void floodfill(State** newValues, int row, int col) {
+		//carefull of limits
+		if (row < 0 || row >= height || col < 0 || col >= width || newValues[row][col] == reveal)
+			return;
+
+
+		newValues[row][col] = reveal; // reveal the Cell
+
+
+		if (tabrand[row][col] == '0')
+			for (int i = -1; i <= 1; ++i)
+				for (int j = -1; j <= 1; ++j)
+					floodfill(newValues, row + i, col + j);
+		//recursive
+
+
+	}
+
 
 	void destroy()
 	{
@@ -73,21 +107,22 @@ struct Grid
 	int width;
 	int height;
 	char** tabrand;
+	int bomb;
 	void tableaualéatoire()
 	{
 
-		int bomb = (20 * width * height) / 100;
+
 
 
 		tabrand = new char* [height];
-		// creer une grille
+		// create the hiden grid
 		for (int row = 0; row < height; row++)
 			tabrand[row] = new char[width];
 
 		for (int row = 0; row < height; ++row)
 			for (int col = 0; col < width; ++col)
 				tabrand[row][col] = '0';
-		// gerer les bomb
+		// place the numbers and bombs
 		int bombPlaced = 0;
 		while (bombPlaced < bomb)
 		{
@@ -100,229 +135,27 @@ struct Grid
 			{
 				tabrand[row][col] = 'B';
 				bombPlaced++;
-
+				incrementSurroundingCase(row, col);
 			}
 		}
-		//placer les chiffres autour des bombes
-		for (int row = 0; row < height ; ++row)
-			for (int col = 0; col < width; ++col)
-			{
-				if (tabrand[row][col] == 'B')
+
+	}
+	void incrementSurroundingCase(int bombrow, int bombcol)
+	{
+		//increment the numbers around the bomb
+		for (int row = bombrow - 1; row <= bombrow + 1; ++row)
+			for (int col = bombcol - 1; col <= bombcol + 1; ++col)
+				if (row >= 0 && row < height && col >= 0 && col < width && tabrand[row][col] != 'B')
 				{
-					tabrand[row][col] = 'B';
-				}
-				else
-				{
-
-					if (row != 0 && row != height - 1 && col != 0 && col != width - 1) // tout sauf les bordure
-					{
-						if (tabrand[row - 1][col - 1] == 'B')// case en hat a gauche
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col + 1] == 'B')// case en haut a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col + 1] == 'B')// case en bas a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col - 1] == 'B')// case en bas a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == 0 && col == 0) // le coin en haut gauche
-					{
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col + 1] == 'B')// case en bas a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == 0 && col == width - 1) // le coin en haut a droite 
-					{
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col - 1] == 'B')// case en bas a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == height - 1 && col == 0) // le coin en bas a gauche
-					{
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col + 1] == 'B')// case en haut a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == height - 1 && col == width - 1) // le coin en bas a droite
-					{
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col - 1] == 'B')// case en hat a gauche
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == 0 && col != 0 && col != width - 1) //en haut 
-					{
-						if (tabrand[row + 1][col + 1] == 'B')// case en bas a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col - 1] == 'B')// case en bas a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (row == height - 1 && col != 0 && col != width - 1) //en bas
-					{
-						if (tabrand[row - 1][col - 1] == 'B')// case en hat a gauche
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col + 1] == 'B')// case en haut a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (col == 0 && row != 0 && row != height - 1) // a gauche
-					{
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col + 1] == 'B')// case en haut a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col + 1] == 'B')// case en bas a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col - 1] == 'B')// case au millieu a droite
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
-					else if (col == width - 1 && row != 0 && row != height - 1) // a droite
-					{
-						if (tabrand[row - 1][col - 1] == 'B')// case en hat a gauche
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row - 1][col] == 'B')//case en haut au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col] == 'B')// case en bas au milieu
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row + 1][col - 1] == 'B')// case en bas a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-
-						if (tabrand[row][col + 1] == 'B')// case au millieu a gauche 
-							//tabrand[row][col]++;
-							tabrand[row][col] = tabrand[row][col] + 1;
-					}
+					tabrand[row][col]++;
 				}
 
-			}
 
-
-
-
-
-
-
-		/*for (int row = 0; row < height; ++row)
-		{
-			for (int col = 0; col< width; ++col)
-			{
-				std::cout << tabrand[row][col] << " ";
-
-
-			}
-			std::cout << std::endl;
-		}*/
 	}
 
 
 	char whatisthecharhide(int row, int col)
 	{
-
-
-
-
-
-
 		if (tabrand[row][col] == 'B')
 		{
 			hashitabomb();
@@ -331,20 +164,14 @@ struct Grid
 		else
 		{
 			return tabrand[row][col];
-			
+
 		}
-
-
-
-
-
-
-
 	}
 
 
 	void create(int width_, int height_)
 	{
+		//create the visible grid 
 		width = width_;
 		height = height_;
 		values = new State * [height];
@@ -360,47 +187,55 @@ struct Grid
 		std::cout << "   ";
 		for (int col = 0; col < width; ++col)
 		{
-			std::string num_col = std::to_string(col+1);
+			//code for spaces between line numbers
+			std::string num_col = std::to_string(col + 1);
 			std::cout << std::string(3 - num_col.length(), ' ') << num_col;
 		}
 		std::cout << std::endl;
 
 		for (int row = 0; row < height; ++row)
 		{
-			std::string num_row = std::to_string(row+1);
+			//code for spaces between column numbers
+			std::string num_row = std::to_string(row + 1);
 			std::cout << std::string(3 - num_row.length(), ' ') << num_row;
+
 			for (int col = 0; col < width; ++col)
 			{
 				if (values[row][col] == hide)
-					std::cout << "[" << "-" << "]" ;
+					std::cout << "[" << "-" << "]";
 
 				else if (values[row][col] == reveal)
 				{
-					std::cout << "["<< whatisthecharhide(row, col) << "]";
+					if (whatisthecharhide(row, col) == '0')
+						std::cout << "[ ]";
+
+					else
+						std::cout << "[" << whatisthecharhide(row, col) << "]";
 
 				}
 
 				else if (values[row][col] == flag)
-					std::cout << "[" << "<" << "]" ;
+					std::cout << "[" << "<" << "]";
+				//in case of error
 				else
-					std::cout << "[" << "z" << "]" ;
+					std::cout << "[" << "z" << "]";
 			}
 			std::cout << std::endl;
-			
+
 		}
 
-		int hiddenCells = 0;
-
+		//Count the number box revealed for Win
+		int RevealCell = 0;
 		for (int row = 0; row < height; ++row)
 			for (int col = 0; col < width; ++col)
 			{
 
 				if (values[row][col] == reveal)
 				{
-					++hiddenCells;
+					++RevealCell;
 				}
 			}
-		if (hiddenCells == (height * width) - ((20 * width * height) / 100))
+		if (RevealCell == (height * width) - bomb)
 			haswinn();
 	}
 
@@ -414,7 +249,7 @@ struct Grid
 
 		std::cout << "width : ";
 		std::cin >> widthtemp;
-
+		//if invalid position
 		if (heighttemp > height || widthtemp > width)
 		{
 			do
@@ -426,55 +261,46 @@ struct Grid
 				std::cin >> widthtemp;
 			} while (heighttemp > height || widthtemp > width);
 		}
+
+
 		int choice = 0;
 		std::cout << "which action  1: flag / 2 reveal : ";
 		std::cin >> choice;
-		
+		//update the user grid
 		State** newValues = new State * [height];
 		for (int row = 0; row < height; ++row)
 			newValues[row] = new State[width];
+		for (int row = 0; row < height; ++row)
+		{
+			for (int col = 0; col < width; ++col)
+			{
+				newValues[row][col] = values[row][col];
+			}
+		}
 
 		switch (choice)
 		{
 		case (1):
 
 
-			for (int row = 0; row < height; ++row)
-			{
-				for (int col = 0; col < width; ++col)
-				{
-					newValues[row][col] = values[row][col];
-
-
-
-
-				}
-			}
+			//add Flag
 			newValues[heighttemp - 1][widthtemp - 1] = flag;
 
 			destroy();
 			values = newValues;
 			break;
 		case (2):
-
-
-			for (int row = 0; row < height; ++row)
-			{
-				for (int col = 0; col < width; ++col)
-				{
-					newValues[row][col] = values[row][col];
-
-
-
-
-				}
+			if (tabrand[heighttemp - 1][widthtemp - 1] == '0') {
+				floodfill(newValues, heighttemp - 1, widthtemp - 1);
 			}
-			newValues[heighttemp - 1][widthtemp - 1] = reveal;
+			else 
+				newValues[heighttemp - 1][widthtemp - 1] = reveal;
 
 			destroy();
 			values = newValues;
 			break;
 		default:
+			// in case of wrong choice
 			std::cout << "error" << std::endl;
 			break;
 		}
@@ -494,7 +320,7 @@ struct Grid
 int main()
 {
 
-	srand(static_cast<unsigned int>(time(0)));
+	srand(time(0));
 
 	Grid grid;
 
